@@ -7,7 +7,7 @@ add_executable(sorter main.cpp info_container.cpp)
 include_directories(../)
 
 set(Boost_USE_MULTITHREAD ON)
-find_package(Boost COMPONENTS system program_options REQUIRED)
+find_package(Boost COMPONENTS system program_options timer REQUIRED)
 if(NOT Boost_FOUND)
   message(SEND_ERROR "Failed to find Boost libraries")
   return()

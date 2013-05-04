@@ -81,7 +81,7 @@ public:
 private:
   typedef boost::shared_ptr<std::vector<record_info_t> > record_list_t;
 
-  static record_list_t records_from_file(const std::string& fname)
+  record_list_t records_from_file(const std::string& fname)
   {
     std::ifstream is(fname.c_str(), std::ifstream::binary);
     record_list_t result(new std::vector<record_info_t>());
@@ -94,6 +94,7 @@ private:
       if (bytes_read != sizeof(cur_test))
         BOOST_THROW_EXCEPTION(std::runtime_error("Unable to read test struct from input file"));
       is.ignore(cur_test.size);
+      m_logger.debug("%s: record key=%02x %02x %02x %02x, size=%u", fname.c_str(), cur_test.key[0], cur_test.key[1], cur_test.key[2], cur_test.key[3], cur_test.size);
       result->push_back(record_info_t(cur_test, offset));
     }
     return result;

@@ -1,9 +1,12 @@
 #include <fstream>
 
+#include <boost/timer/timer.hpp>
+
 #include "log4cpp/Category.hh"
 
 #include "common/test.h"
 #include "info_container.h"
+#include "input_buffer.h"
 #include "file_merger.h"
 
 class sorter_t
@@ -21,33 +24,39 @@ public:
     std::ifstream is(m_infile.c_str(), std::ifstream::binary);
     file_merger_t merger(".");
     {
-      info_container_t infos(m_ram_size);
-      while (is.good()) {
-        test cur;
-        uint64_t offset = is.tellg();
-        is.read(reinterpret_cast<char*>(&cur), sizeof(cur));
-        if (is.gcount() != sizeof(cur)) {
-          m_logger.error("Cannot read data from input file");
-          return;
+      size_t max_record_count = m_ram_size/(sizeof(record_t) + sizeof(record_t*));
+      info_container_t infos(max_record_count);
+      input_file_t fi(m_infile, max_record_count*sizeof(record_t));
+      while (!fi.buffer().eof()) {
+        {
+          boost::timer::auto_cpu_timer t("Loading data: %w second(s)\n");
+          fi.buffer().load_data();
         }
-        m_logger.debug("Key: %02x %02x %02x %02x, Size: %u", cur.key[0], cur.key[1], cur.key[2], cur.key[3], cur.size);
-        is.ignore(cur.size);
-        infos.add(cur, offset);
-        if (infos.is_full()) {
+        fi.buffer().get_pointers(infos.pointers());
+        {
+          boost::timer::auto_cpu_timer t("Logging records: %w second(s)\n");
           infos.log_records("Before sort");
+        }
+        {
+          boost::timer::auto_cpu_timer t("Sorting data: %w second(s)\n");
           infos.sort();
+        }
+        {
+          boost::timer::auto_cpu_timer t("Logging records: %w second(s)\n");
           infos.log_records("After sort");
+        }
+        {
+          boost::timer::auto_cpu_timer t("Dumping to tmp file: %w second(s)\n");
           infos.dump_to_file(merger.next_file());
         }
-      }
-      if (!infos.is_empty()) {
-        infos.log_records("Before sort");
-        infos.sort();
-        infos.log_records("After sort");
-        infos.dump_to_file(merger.next_file());
+        while (fi.buffer().has_cached_data())
+          fi.buffer().pop();
       }
     }
-    merger.merge_files(m_infile, m_outfile, m_ram_size);
+    {
+      boost::timer::auto_cpu_timer t("Merging data: %w second(s)\n");
+      merger.merge_files(m_outfile, m_ram_size);
+    }
 
     m_logger.debug("Data read");
   }

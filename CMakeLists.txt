@@ -11,6 +11,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/;${CMAKE_MODULE_
 
 enable_testing()
 add_test(AutoTests ${EXECUTABLE_OUTPUT_PATH}/test_auto)
+add_test(InputBuffer ${EXECUTABLE_OUTPUT_PATH}/test_input_buffer)
 
 add_subdirectory(generator)
 add_subdirectory(sorter)

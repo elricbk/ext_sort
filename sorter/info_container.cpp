@@ -5,37 +5,32 @@
 #include <boost/assert.hpp>
 #include <boost/foreach.hpp>
 
-info_container_t::info_container_t(size_t ram_size)
+info_container_t::info_container_t(size_t ptr_count)
   : m_logger(log4cpp::Category::getRoot())
-  , m_max_records(ram_size/sizeof(record_info_t))
 {
   // FIXME: для поддержки многопоточности нужно резервировать
   // thread_count/(thread_count + 1) от этого количества
-  m_records.reserve(m_max_records);
+  m_records.reserve(ptr_count);
 }
 
-void info_container_t::add(const test& record, uint64_t offset)
-{
-  BOOST_ASSERT(m_records.size() < m_max_records);
-  m_records.push_back(record_info_t(record, offset));
-}
 
 namespace {
-  typedef record_info_t item_type;
+  typedef record_t* item_type;
 
-  bool cmp_char_64_r(const record_info_t& first, const record_info_t& second)
-  {
-    for (size_t i = 0; i < 64; ++i) {
-      if (first.key[i] == second.key[i]) continue;
-      return first.key[i] < second.key[i];
-    }
-    return false;
-  }
+  //bool cmp_char_64_r(const record_info_t& first, const record_info_t& second)
+  //{
+    //for (size_t i = 0; i < 64; ++i) {
+      //if (first.key[i] == second.key[i]) continue;
+      //return first.key[i] < second.key[i];
+    //}
+    //return false;
+  //}
 
   void insertion_sort(item_type *array, size_t offset, size_t end) {
       item_type temp;
       for (size_t x=offset; x<end; ++x) {
-          for (size_t y=x; y>offset && !cmp_char_64_r(array[y-1], array[y]); y--) {
+          for (size_t y=x; y>offset && (*array[y] < *array[y-1]); y--) {
+              // FIXME: для массива можно эффективнее
               temp = array[y];
               array[y] = array[y-1];
               array[y-1] = temp;
@@ -49,7 +44,7 @@ namespace {
       size_t last[256] = { 0 }, pointer[256];
 
       for (x=offset; x<end; ++x) {
-          ++last[array[x].key[idx]];
+          ++last[array[x]->key[idx]];
       }
 
       last[0] += offset;
@@ -62,12 +57,12 @@ namespace {
       for (x=0; x<256; ++x) {
           while (pointer[x] != last[x]) {
               value = array[pointer[x]];
-              y = value.key[idx];
+              y = value->key[idx];
               while (x != y) {
                   item_type temp = array[pointer[y]];
                   array[pointer[y]++] = value;
                   value = temp;
-                  y = value.key[idx];
+                  y = value->key[idx];
               }
               array[pointer[x]++] = value;
           }
@@ -101,8 +96,8 @@ void info_container_t::sort()
 void info_container_t::log_records(const std::string& header) const
 {
   m_logger.debugStream() << header;
-  BOOST_FOREACH(const record_info_t& cur, m_records) {
-    m_logger.debug("Key: %02x %02x %02x %02x, offset: %u", cur.key[0], cur.key[1], cur.key[2], cur.key[3], cur.offset);
+  BOOST_FOREACH(const record_t* cur, m_records) {
+    m_logger.debug("Key: %02x %02x %02x %02x, size: %u", cur->key[0], cur->key[1], cur->key[2], cur->key[3], cur->size);
   }
 }
 
@@ -110,8 +105,8 @@ void info_container_t::dump_to_file(const std::string& fname)
 {
   m_logger.debugStream() << "Dumping current data to file: " << fname;
   std::ofstream os(fname.c_str(), std::ofstream::binary);
-  BOOST_FOREACH(record_info_t& ri, m_records) {
-    os.write(reinterpret_cast<char*>(&ri), sizeof(ri));
+  BOOST_FOREACH(record_t* ri, m_records) {
+    os.write(reinterpret_cast<char*>(ri), sizeof(record_t) + ri->size);
   }
   m_records.clear();
 }

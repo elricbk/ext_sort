@@ -28,39 +28,38 @@ public:
     return m_files.back();
   }
 
-  void merge_files(const std::string& data_file, const std::string& out_fname, size_t ram_size)
+  void merge_files(const std::string& out_fname, size_t ram_size)
   {
     BOOST_ASSERT(ram_size > 0); // FIXME: какое-то более сильное условие должно быть
     BOOST_ASSERT(!m_files.empty());
 
     size_t partial_ram = ram_size/(m_files.size() + 1);
-    boost::ptr_vector<input_buffer_t> ibs; 
+    boost::ptr_vector<input_file_t> ibs; 
     BOOST_FOREACH(const std::string& fname, m_files) {
-      ibs.push_back(new input_buffer_t(fname, partial_ram));
-      ibs.back().load_data();
+      ibs.push_back(new input_file_t(fname, partial_ram, true));
+      ibs.back().buffer().load_data();
     }
 
-    output_buffer_t ob(out_fname, data_file, ram_size - m_files.size()*partial_ram);
+    output_buffer_t ob(out_fname, ram_size - m_files.size()*partial_ram);
 
-    while (ibs.size() > 0) {
+    while (!ibs.empty()) {
       size_t min_idx = 0;
-      record_info_t min_rec = ibs[0].peek();
+      const record_t* min_rec = ibs[0].buffer().peek();
       for (size_t i = 1; i < ibs.size(); ++i) {
-        if (ibs[i].peek() < min_rec) {
-          min_rec = ibs[i].peek();
+        if (*ibs[i].buffer().peek() < *min_rec) {
+          min_rec = ibs[i].buffer().peek();
           min_idx = i;
         }
       }
 
-      ibs[min_idx].pop();
-
       ob.add(min_rec);
+      ibs[min_idx].buffer().pop();
 
-      if (!ibs[min_idx].has_cached_data()) {
+      if (!ibs[min_idx].buffer().has_cached_data()) {
         m_logger.debug("No cached data in file with idx %d", min_idx);
-        ibs[min_idx].load_data();
+        ibs[min_idx].buffer().load_data();
 
-        if (!ibs[min_idx].has_cached_data()) {
+        if (!ibs[min_idx].buffer().has_cached_data()) {
           m_logger.debug("Still no cached data, means file is exhausted, removing");
           ibs.erase(ibs.begin() + min_idx);
         }

@@ -8,55 +8,139 @@
 
 #include "log4cpp/Category.hh"
 
-#include "common/record_info.h"
+#include "common/record.h"
 
 class input_buffer_t {
 public:
-  input_buffer_t (const std::string& fname, size_t ram_size)
+  input_buffer_t (std::istream& stream, size_t ram_size)
     : m_logger(log4cpp::Category::getRoot())
-    , m_file_name(fname)
-    , m_stream(fname.c_str(), std::ifstream::binary)
-    , m_max_records(ram_size/sizeof(record_info_t))
+    , m_stream(stream)
+    , m_ram_size(ram_size)
+    , m_has_cached_data(false)
+    , m_data(new char[m_ram_size])
     , m_idx(0)
-    , m_rec_count(0)
-    , m_records(new record_info_t[m_max_records])
+    , m_data_available(0)
   {
-    m_logger.debugStream() << "Input file name " << fname << ", available memory " << ram_size;
-    m_logger.debug("Max records: %u", m_max_records);
-    BOOST_ASSERT(m_max_records > 0);
+    if (m_ram_size < sizeof(record_t))
+      BOOST_THROW_EXCEPTION(std::runtime_error("Available memory is less than record size"));
   }
 
-  ~input_buffer_t()
-  {
-    if (remove(m_file_name.c_str()) != 0)
-      m_logger.errorStream() << "Error while deleting file " << m_file_name; 
-  }
-
-  bool has_cached_data() const { return (m_idx < m_rec_count); }
+  bool has_cached_data() const { return m_has_cached_data; }
   bool eof() const { return m_stream.eof(); }
-  const record_info_t& peek() const { return m_records[m_idx]; }
-  record_info_t pop() { record_info_t res = m_records[m_idx]; m_idx++; return res; }
+
+  const record_t* peek() const
+  { 
+    BOOST_ASSERT(m_has_cached_data);
+    return reinterpret_cast<const record_t*>(m_data.get() + m_idx);
+  }
+
+  void pop()
+  {
+    BOOST_ASSERT(m_has_cached_data);
+    const record_t* rec = peek();
+    m_logger.debug("Popping record key=%02x %02x %02x %02x, size=%u", rec->key[0], rec->key[1], rec->key[2], rec->key[3], rec->size);
+    m_idx += rec->size + sizeof(record_t);
+    m_has_cached_data = check_memory(m_idx);
+    if (m_has_cached_data) {
+      const record_t* rec = peek();
+      m_logger.debug("Record after pop key=%02x %02x %02x %02x, size=%u", rec->key[0], rec->key[1], rec->key[2], rec->key[3], rec->size);
+    }
+  }
 
   void load_data()
   {
-    m_stream.read(reinterpret_cast<char*>(m_records.get()), sizeof(record_info_t)*m_max_records);
+    BOOST_ASSERT(m_idx < m_ram_size);
+
+    size_t left = m_data_available - m_idx;
+    if (left > 0)
+      std::memmove(m_data.get(), m_data.get() + m_idx, left);
+    size_t bytes_to_read = m_ram_size - left;
+    m_stream.read(m_data.get() + left, bytes_to_read);
     std::streamsize bytes_read = m_stream.gcount();
     m_logger.debug("Read %d bytes from file", bytes_read);
-    if ((bytes_read != sizeof(record_info_t)*m_max_records) && !m_stream.eof())
+    if ((bytes_read != bytes_to_read) && !m_stream.eof())
       BOOST_THROW_EXCEPTION(std::runtime_error("Some error while reading data from temporary file"));
-    if (bytes_read % sizeof(record_info_t))
-      BOOST_THROW_EXCEPTION(std::runtime_error("Incorrect amount of bytes was read from temporary file"));
     m_idx = 0;
-    m_rec_count = bytes_read / sizeof(record_info_t);
-    m_logger.debug("Record count after read: %u", m_rec_count);
+    m_data_available = left + bytes_read;
+    m_has_cached_data = check_memory(m_idx);
+  }
+
+  void get_pointers(std::vector<record_t*> * ptrs)
+  {
+    BOOST_ASSERT(ptrs);
+    ptrs->clear();
+    if (!m_has_cached_data)
+      return;
+    size_t idx = m_idx;
+    record_t* ptr = reinterpret_cast<record_t*>(m_data.get() + idx);
+    ptrs->push_back(ptr);
+    idx += ptr->size + sizeof(record_t);
+
+    while (check_memory(idx)) {
+      ptr = reinterpret_cast<record_t*>(m_data.get() + idx);
+      ptrs->push_back(ptr);
+      idx += ptr->size + sizeof(record_t);
+    }
+  }
+
+private:
+  bool check_memory(size_t idx)
+  {
+    m_logger.debug("check_memory: m_data_available=%u, idx=%u", m_data_available, idx);
+    BOOST_ASSERT(idx <= m_data_available);
+    size_t left  = m_data_available - idx;
+    if (left < sizeof(record_t)) {
+      return false;
+    }
+    const record_t* rec = reinterpret_cast<const record_t*>(m_data.get() + idx);
+    if (rec->size > m_ram_size) {
+      m_logger.error("Record size (%u) is greater than available memory (%u), unable to continue", rec->size, m_ram_size);
+      BOOST_THROW_EXCEPTION(std::runtime_error("Record size is greater than available memory"));
+    }
+    if (left < rec->size + sizeof(record_t)) {
+      if (m_stream.eof())
+        BOOST_THROW_EXCEPTION(std::runtime_error("Not enough data for current record in file"));
+      return false;
+    }
+    return true;
   }
 
 private:
   log4cpp::Category& m_logger;
+  std::istream& m_stream;
+  size_t m_ram_size;
+  bool m_has_cached_data;
+  boost::shared_array<char> m_data;
+  size_t m_idx;
+  size_t m_data_available;
+};
+
+// Обёртка над входным файлом, нужна чтобы буфер было проще тестировать
+class input_file_t {
+public:
+  input_file_t (const std::string& fname, size_t ram_size, bool rm_file = false)
+    : m_logger(log4cpp::Category::getRoot())
+    , m_delete_file(rm_file)
+    , m_file_name(fname)
+    , m_stream(m_file_name.c_str(), std::ifstream::binary)
+    , m_buffer(m_stream, ram_size) {}
+
+  ~input_file_t()
+  {
+    m_stream.close();
+    if (m_delete_file) {
+      m_logger.debugStream() << "Removing file " << m_file_name;
+      if (remove(m_file_name.c_str()) != 0)
+        m_logger.errorStream() << "Error while deleting file " << m_file_name; 
+    }
+  }
+
+  input_buffer_t& buffer() { return m_buffer; }
+
+private:
+  log4cpp::Category& m_logger;
+  bool m_delete_file;
   std::string m_file_name;
   std::ifstream m_stream;
-  size_t m_max_records;
-  size_t m_idx;
-  size_t m_rec_count;
-  boost::shared_array<record_info_t> m_records;
+  input_buffer_t m_buffer;
 };

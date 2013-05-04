@@ -21,7 +21,7 @@ void init_logging(bool verbose)
   appender1->setLayout(layout1);
 
   log4cpp::Category& root = log4cpp::Category::getRoot();
-  root.setPriority(verbose ? log4cpp::Priority::DEBUG : log4cpp::Priority::WARN);
+  root.setPriority(verbose ? log4cpp::Priority::DEBUG : log4cpp::Priority::NOTICE);
   root.addAppender(appender1);
 
   if (verbose) {
@@ -47,7 +47,7 @@ int main(int ac, const char *av[])
     ("help,h", "produce help message")
     ("size,s", po::value<size_t>(&ram_size)->default_value(1024), "set memory size in Mb to use for sorting")
     ("input,i", po::value<std::string>(&infile)->required(), "set input file name")
-    ("output,i", po::value<std::string>(&outfile)->required(), "set output file name")
+    ("output,o", po::value<std::string>(&outfile)->required(), "set output file name")
     ("verbose,v", po::value<bool>(&verbose)->zero_tokens()->default_value(false), "verbose logging")
     ;
 

@@ -48,7 +48,7 @@ int main(int ac, const char *av[])
     ("size,s", po::value<size_t>(&file_size)->default_value(1024), "set approximate output file size in Mb, generation will stop when this size is exceeded")
     ("datasize,d", po::value<size_t>(&data_size)->default_value(1), "set maximum size of data for each record in Kb")
     ("output,o", po::value<std::string>(&file_name)->default_value("test.dat"), "set output file name")
-    ("verbose,v", po::value<bool>(&verbose)->zero_tokens(), "verbose logging")
+    ("verbose,v", po::value<bool>(&verbose)->zero_tokens()->default_value(false), "verbose logging")
     ("randomize-data", po::value<bool>(&randomize)->default_value(false), "set random seed for data generator")
     ;
 

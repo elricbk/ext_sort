@@ -23,7 +23,7 @@ struct LoggingSetup
     appender->setLayout(layout);
 
     log4cpp::Category& root = log4cpp::Category::getRoot();
-    root.setPriority(log4cpp::Priority::INFO);
+    root.setPriority(log4cpp::Priority::DEBUG);
     root.addAppender(appender);
   }
 };
@@ -33,6 +33,7 @@ BOOST_GLOBAL_FIXTURE(LoggingSetup)
 BOOST_AUTO_TEST_SUITE(SimpleScnearios)
 
   BOOST_AUTO_TEST_CASE(single_temp_file) {
+    log4cpp::Category::getRoot().notice("===  single_temp_file ===");
     file_comparer_t comparer;
 
     generator_t generator(comparer.fname_orig(), 1024, 50);
@@ -46,12 +47,13 @@ BOOST_AUTO_TEST_SUITE(SimpleScnearios)
   }
 
   BOOST_AUTO_TEST_CASE(multiple_temp_files) {
+    log4cpp::Category::getRoot().notice("===  multiple_temp_files ===");
     file_comparer_t comparer;
 
     generator_t generator(comparer.fname_orig(), 20480, 50);
     generator.generate_data();
 
-    sorter_t sorter(comparer.fname_orig(), comparer.fname_sort(), 1024);
+    sorter_t sorter(comparer.fname_orig(), comparer.fname_sort(), 4096);
     sorter.sort_data();
 
     BOOST_CHECK(comparer.file_is_sorted());
@@ -59,9 +61,10 @@ BOOST_AUTO_TEST_SUITE(SimpleScnearios)
   }
 
   BOOST_AUTO_TEST_CASE(sparse_file) {
+    log4cpp::Category::getRoot().notice("===  sparse_file ===");
     file_comparer_t comparer;
 
-    generator_t generator(comparer.fname_orig(), 16*1024*1024, 4*1024*1024);
+    generator_t generator(comparer.fname_orig(), 16*1024*1024, 2*1024*1024);
     generator.generate_data();
 
     sorter_t sorter(comparer.fname_orig(), comparer.fname_sort(), 8*1024*1024);
