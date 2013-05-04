@@ -14,5 +14,4 @@ add_test(AutoTests ${EXECUTABLE_OUTPUT_PATH}/test_auto)
 
 add_subdirectory(generator)
 add_subdirectory(sorter)
-add_subdirectory(tester)
 add_subdirectory(tests)
