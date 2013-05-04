@@ -1,10 +1,6 @@
 #include <iostream>
-#include <fstream>
-
-#include <boost/shared_array.hpp>
 #include <boost/program_options.hpp>
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_int_distribution.hpp>
+#include <boost/exception/all.hpp>
 
 #include "log4cpp/Category.hh"
 #include "log4cpp/Appender.hh"
@@ -14,48 +10,7 @@
 #include "log4cpp/PatternLayout.hh"
 #include "log4cpp/Priority.hh"
 
-#include "common/test.h"
-
-class test_generator
-{
-public:
-  test_generator(size_t max_data_size = 4*1024)
-    : m_dist(0, std::numeric_limits<unsigned char>::max())
-    , m_size_dist(0, max_data_size) {}
-
-  test operator() ()
-  {
-    test res;
-    for (size_t i = 0; i < 64; ++i)
-      res.key[i] = m_dist(m_gen);
-    res.size = m_size_dist(m_gen);
-    return res;
-  }
-
-private:
-  boost::random::mt19937 m_gen;
-  boost::random::uniform_int_distribution<unsigned char> m_dist;
-  boost::random::uniform_int_distribution<uint64_t> m_size_dist;
-};
-
-void generate_data(const std::string& fname, size_t file_size)
-{
-  std::ofstream os(fname.c_str(), std::ios::binary);
-  size_t total_size = 0;
-  test_generator gen;
-  log4cpp::Category& logger = log4cpp::Category::getRoot();
-  // FIXME: опасно такое оставлять для больших размеров данных
-  boost::shared_array<char> sa(new char[4*1024]);
-  std::memset(sa.get(), 4*1024, 0);
-
-  while (total_size < file_size) {
-    test res = gen(); 
-    logger.debug("Key: %02x %02x %02x %02x, Size: %u", res.key[0], res.key[1], res.key[2], res.key[3], res.size);
-    os.write(reinterpret_cast<char*>(&res), sizeof(res));
-    os.write(sa.get(), res.size);
-    total_size += sizeof(res) + res.size;
-  }
-}
+#include "generator.hpp"
 
 void init_logging(bool verbose)
 {
@@ -82,6 +37,7 @@ int main(int ac, const char *av[])
   namespace po = boost::program_options;
 
   size_t file_size;
+  size_t data_size;
   std::string file_name;
   bool verbose;
   bool randomize;
@@ -90,6 +46,7 @@ int main(int ac, const char *av[])
   desc.add_options()
     ("help,h", "produce help message")
     ("size,s", po::value<size_t>(&file_size)->default_value(1024), "set approximate output file size in Mb, generation will stop when this size is exceeded")
+    ("datasize,d", po::value<size_t>(&data_size)->default_value(1), "set maximum size of data for each record in Kb")
     ("output,o", po::value<std::string>(&file_name)->default_value("test.dat"), "set output file name")
     ("verbose,v", po::value<bool>(&verbose)->zero_tokens(), "verbose logging")
     ("randomize-data", po::value<bool>(&randomize)->default_value(false), "set random seed for data generator")
@@ -100,12 +57,26 @@ int main(int ac, const char *av[])
   po::notify(vm);    
 
   init_logging(verbose);
+  log4cpp::Category& logger = log4cpp::Category::getRoot();
 
   if (vm.count("help")) {
     std::cout << desc << "\n";
     return 1;
   }
 
-  generate_data(file_name, file_size*1024*1024);
+  try {
+    generator_t generator(file_name, file_size*1024*1024, data_size*1024);
+    generator.generate_data();
+  } catch (const boost::exception& e) {
+    logger.critStream() << "Error while reading data: " << boost::diagnostic_information(e);
+    return 2;
+  } catch (const std::exception& e) {
+    logger.crit("Error while reading data: %s", e.what());
+    return 2;
+  } catch (...) {
+    logger.crit("Unknown exception while reading data");
+    return 2;
+  }
+
   return 0;
 }
