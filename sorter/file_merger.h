@@ -28,7 +28,7 @@ public:
     return m_files.back();
   }
 
-  void merge_files(const std::string& data_file, size_t ram_size)
+  void merge_files(const std::string& data_file, const std::string& out_fname, size_t ram_size)
   {
     BOOST_ASSERT(ram_size > 0); // FIXME: какое-то более сильное условие должно быть
     BOOST_ASSERT(!m_files.empty());
@@ -40,7 +40,6 @@ public:
       ibs.back().load_data();
     }
 
-    std::string out_fname = "result.dat"; // FIXME: из параметров
     output_buffer_t ob(out_fname, data_file, ram_size - m_files.size()*partial_ram);
 
     while (ibs.size() > 0) {

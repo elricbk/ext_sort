@@ -1,7 +1,5 @@
 #include <iostream>
-#include <fstream>
 
-#include <boost/assert.hpp>
 #include <boost/program_options.hpp>
 #include <boost/exception/all.hpp>
 
@@ -13,9 +11,7 @@
 #include "log4cpp/PatternLayout.hh"
 #include "log4cpp/Priority.hh"
 
-#include "common/test.h"
-#include "info_container.h"
-#include "file_merger.h"
+#include "sorter.hpp"
 
 void init_logging(bool verbose)
 {
@@ -37,58 +33,21 @@ void init_logging(bool verbose)
   }
 }
 
-void read_data(const std::string& fname, size_t ram_size)
-{
-  log4cpp::Category& logger = log4cpp::Category::getRoot();
-  logger.debug("Starting reading of data");
-  std::ifstream is(fname.c_str(), std::ifstream::binary);
-  file_merger_t merger(".");
-  {
-    info_container_t infos(ram_size);
-    while (is.good()) {
-      test cur;
-      uint64_t offset = is.tellg();
-      is.read(reinterpret_cast<char*>(&cur), sizeof(cur));
-      if (is.gcount() != sizeof(cur)) {
-        logger.error("Cannot read data from input file");
-        return;
-      }
-      logger.debug("Key: %02x %02x %02x %02x, Size: %u", cur.key[0], cur.key[1], cur.key[2], cur.key[3], cur.size);
-      is.ignore(cur.size);
-      infos.add(cur, offset);
-      if (infos.is_full()) {
-        infos.log_records("Before sort");
-        infos.sort();
-        infos.log_records("After sort");
-        infos.dump_to_file(merger.next_file());
-      }
-    }
-    if (!infos.is_empty()) {
-      infos.log_records("Before sort");
-      infos.sort();
-      infos.log_records("After sort");
-      infos.dump_to_file(merger.next_file());
-    }
-  }
-  merger.merge_files(fname, ram_size);
-
-  logger.debug("Data read");
-}
-
 int main(int ac, const char *av[])
 {
   namespace po = boost::program_options;
 
   size_t ram_size;
-  std::string file_name;
-  bool verbose = true;
-  bool randomize;
+  std::string infile;
+  std::string outfile;
+  bool verbose;
 
   po::options_description desc("Options for data sorter");
   desc.add_options()
     ("help,h", "produce help message")
     ("size,s", po::value<size_t>(&ram_size)->default_value(1024), "set memory size in Mb to use for sorting")
-    ("input,i", po::value<std::string>(&file_name)->default_value("test.dat"), "set input file name")
+    ("input,i", po::value<std::string>(&infile)->required(), "set input file name")
+    ("output,i", po::value<std::string>(&outfile)->required(), "set output file name")
     ("verbose,v", po::value<bool>(&verbose)->zero_tokens()->default_value(false), "verbose logging")
     ;
 
@@ -112,13 +71,17 @@ int main(int ac, const char *av[])
   logger.info("Starting application...");
 
   try {
-    read_data(file_name, ram_size*1024*1024);
+    sorter_t sorter(infile, outfile, ram_size*1024*1024);
+    sorter.sort_data();
   } catch (const boost::exception& e) {
     logger.critStream() << "Error while reading data: " << boost::diagnostic_information(e);
+    return 2;
   } catch (const std::exception& e) {
     logger.crit("Error while reading data: %s", e.what());
+    return 2;
   } catch (...) {
     logger.crit("Unknown exception while reading data");
+    return 2;
   }
 
   return 0;

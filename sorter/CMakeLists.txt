@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 
 project(sorter)
 
-add_executable(sorter sorter.cpp info_container.cpp)
+add_executable(sorter main.cpp info_container.cpp)
 
 include_directories(../)
 
