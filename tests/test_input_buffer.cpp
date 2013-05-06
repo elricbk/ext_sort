@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_SUITE(InputBuffer)
     log4cpp::Category::getRoot().notice("=== single_read ===");
     std::stringstream ss;
     input_buffer_t ib(ss, 1024);
-    record_t rec(42, 24, 10);
+    record_t rec = make_record(42, 24, 10);
     ss << rec;
     ib.load_data();
     BOOST_REQUIRE(ib.has_cached_data());
@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_SUITE(InputBuffer)
     log4cpp::Category::getRoot().notice("=== pop ===");
     std::stringstream ss;
     input_buffer_t ib(ss, 1024);
-    record_t rec(42, 24, 10);
+    record_t rec = make_record(42, 24, 10);
     ss << rec;
     ib.load_data();
     BOOST_REQUIRE(ib.has_cached_data());
@@ -80,8 +80,8 @@ BOOST_AUTO_TEST_SUITE(InputBuffer)
     log4cpp::Category::getRoot().notice("=== multiple_reads ===");
     std::stringstream ss;
     input_buffer_t ib(ss, 200);
-    record_t rec(42, 24, 10);
-    record_t rec2(31, 45, 3);
+    record_t rec = make_record(42, 24, 10);
+    record_t rec2 = make_record(31, 45, 3);
 
     ss << rec << rec << rec2;
 
@@ -115,8 +115,8 @@ BOOST_AUTO_TEST_SUITE(InputBuffer)
     ptrs.push_back(NULL);
 
     std::stringstream ss;
-    record_t rec(42, 24, 10);
-    record_t rec2(31, 45, 10);
+    record_t rec = make_record(42, 24, 10);
+    record_t rec2 = make_record(31, 45, 10);
     ss << rec << rec2 << rec;
 
     input_buffer_t ib(ss, 200);
