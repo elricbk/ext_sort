@@ -73,4 +73,20 @@ BOOST_AUTO_TEST_SUITE(SimpleScnearios)
     BOOST_CHECK(comparer.file_is_sorted());
     BOOST_CHECK(comparer.records_are_equal());
   }
+
+  BOOST_AUTO_TEST_CASE(huge_mem_for_sort) {
+    // проверяет нормальную работу сортировки для большого объёма выделенной памяти
+    // т.к. были проблемы при использовании STL-потоков
+    log4cpp::Category::getRoot().notice("=== huge_mem_for_sort ===");
+    file_comparer_t comparer;
+
+    generator_t generator(comparer.fname_orig(), 20480, 50);
+    generator.generate_data();
+
+    sorter_t sorter(comparer.fname_orig(), comparer.fname_sort(), 4*1024*1024*1024L);
+    sorter.sort_data();
+
+    BOOST_CHECK(comparer.file_is_sorted());
+    BOOST_CHECK(comparer.records_are_equal());
+  }
 BOOST_AUTO_TEST_SUITE_END()

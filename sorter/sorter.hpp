@@ -1,6 +1,8 @@
 #include <fstream>
 
 #include <boost/timer/timer.hpp>
+#include <boost/mem_fn.hpp>
+#include <boost/bind.hpp>
 
 #include "log4cpp/Category.hh"
 
@@ -8,6 +10,25 @@
 #include "info_container.h"
 #include "input_buffer.h"
 #include "file_merger.h"
+
+class auto_timer_t
+{
+public:
+  auto_timer_t(log4cpp::Category& logger, const std::string& caption)
+    : m_logger(logger)
+    , m_caption(caption) {}
+
+  ~auto_timer_t()
+  {
+    m_logger.noticeStream() << m_caption << ":"
+      << m_timer.format(boost::timer::default_places, " %ws wall, %us user + %ss system = %ts CPU (%p%)");
+  }
+
+private:
+  log4cpp::Category& m_logger;
+  std::string m_caption;
+  boost::timer::cpu_timer m_timer;
+};
 
 class sorter_t
 {
@@ -29,32 +50,30 @@ public:
       input_file_t fi(m_infile, max_record_count*sizeof(record_t));
       while (!fi.buffer().eof()) {
         {
-          boost::timer::auto_cpu_timer t("Loading data: %w second(s)\n");
+          auto_timer_t t(m_logger, "Loading data");
           fi.buffer().load_data();
         }
         fi.buffer().get_pointers(infos.pointers());
         {
-          boost::timer::auto_cpu_timer t("Logging records: %w second(s)\n");
+          auto_timer_t t(m_logger, "Logging records");
           infos.log_records("Before sort");
         }
         {
-          boost::timer::auto_cpu_timer t("Sorting data: %w second(s)\n");
+          auto_timer_t t(m_logger, "Sorting");
           infos.sort();
         }
         {
-          boost::timer::auto_cpu_timer t("Logging records: %w second(s)\n");
+          auto_timer_t t(m_logger, "Logging records");
           infos.log_records("After sort");
         }
         {
-          boost::timer::auto_cpu_timer t("Dumping to tmp file: %w second(s)\n");
+          auto_timer_t t(m_logger, "Dumping to tmp file");
           infos.dump_to_file(merger.next_file());
         }
-        while (fi.buffer().has_cached_data())
-          fi.buffer().pop();
       }
     }
     {
-      boost::timer::auto_cpu_timer t("Merging data: %w second(s)\n");
+      auto_timer_t t(m_logger, "Merging files");
       merger.merge_files(m_outfile, m_ram_size);
     }
 

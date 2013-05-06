@@ -4,10 +4,14 @@
 
 #include <boost/shared_array.hpp>
 #include <boost/throw_exception.hpp>
+#include <boost/iostreams/device/file.hpp>
+#include <boost/iostreams/stream.hpp>
 
 #include "log4cpp/Category.hh"
 
 #include "common/record.h"
+
+namespace io = boost::iostreams;
 
 class output_buffer_t {
 public:
@@ -54,5 +58,5 @@ private:
   size_t m_ram_size;
   size_t m_idx;
   boost::shared_array<char> m_data;
-  std::ofstream m_outfile;
+  io::stream<io::file_sink> m_outfile;
 };

@@ -48,11 +48,13 @@ bool operator==(const record_t& left, const record_t& right)
 BOOST_AUTO_TEST_SUITE(InputBuffer)
 
   BOOST_AUTO_TEST_CASE(construction) {
+    log4cpp::Category::getRoot().notice("=== construction ===");
     std::stringstream ss;
     input_buffer_t ib(ss, 1024);
   }
 
   BOOST_AUTO_TEST_CASE(single_read) {
+    log4cpp::Category::getRoot().notice("=== single_read ===");
     std::stringstream ss;
     input_buffer_t ib(ss, 1024);
     record_t rec(42, 24, 10);
@@ -63,6 +65,7 @@ BOOST_AUTO_TEST_SUITE(InputBuffer)
   }
 
   BOOST_AUTO_TEST_CASE(pop) {
+    log4cpp::Category::getRoot().notice("=== pop ===");
     std::stringstream ss;
     input_buffer_t ib(ss, 1024);
     record_t rec(42, 24, 10);
@@ -74,6 +77,7 @@ BOOST_AUTO_TEST_SUITE(InputBuffer)
   }
 
   BOOST_AUTO_TEST_CASE(multiple_reads) {
+    log4cpp::Category::getRoot().notice("=== multiple_reads ===");
     std::stringstream ss;
     input_buffer_t ib(ss, 200);
     record_t rec(42, 24, 10);
@@ -96,6 +100,7 @@ BOOST_AUTO_TEST_SUITE(InputBuffer)
 
 
   BOOST_AUTO_TEST_CASE(get_pointers_ON_no_data_RETURNS_no_pointers) {
+    log4cpp::Category::getRoot().notice("=== get_pointers_ON_no_data_RETURNS_no_pointers ===");
     std::vector<record_t*> ptrs;
     ptrs.push_back(NULL);
     std::stringstream ss;
@@ -105,6 +110,7 @@ BOOST_AUTO_TEST_SUITE(InputBuffer)
   }
 
   BOOST_AUTO_TEST_CASE(get_pointers_ON_multiple_data_RETURNS_correct_pointers) {
+    log4cpp::Category::getRoot().notice("=== get_pointers_ON_multiple_data_RETURNS_correct_pointers ===");
     std::vector<record_t*> ptrs;
     ptrs.push_back(NULL);
 

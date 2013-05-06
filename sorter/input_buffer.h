@@ -2,13 +2,20 @@
 
 #include <cstdio>
 #include <fstream>
+#include <istream>
 
 #include <boost/shared_array.hpp>
 #include <boost/throw_exception.hpp>
+#include <boost/iostreams/device/file.hpp>
+#include <boost/iostreams/stream.hpp>
 
 #include "log4cpp/Category.hh"
 
 #include "common/record.h"
+
+namespace io = boost::iostreams;
+
+// FIXME: explicit constructors where possible?
 
 class input_buffer_t {
 public:
@@ -21,8 +28,11 @@ public:
     , m_idx(0)
     , m_data_available(0)
   {
-    if (m_ram_size < sizeof(record_t))
+    m_logger.debug("input_buffer_t: m_ram_size=%u", m_ram_size);
+    if (m_ram_size < sizeof(record_t)) {
+      m_logger.error("Available ram (%u) is less than record size (%u)", m_ram_size, sizeof(record_t));
       BOOST_THROW_EXCEPTION(std::runtime_error("Available memory is less than record size"));
+    }
   }
 
   bool has_cached_data() const { return m_has_cached_data; }
@@ -51,15 +61,23 @@ public:
   {
     BOOST_ASSERT(m_idx < m_ram_size);
 
+    m_logger.debug("Loading data, m_idx=%u m_data_available=%u", m_idx, m_data_available);
     size_t left = m_data_available - m_idx;
     if (left > 0)
       std::memmove(m_data.get(), m_data.get() + m_idx, left);
     size_t bytes_to_read = m_ram_size - left;
-    m_stream.read(m_data.get() + left, bytes_to_read);
-    std::streamsize bytes_read = m_stream.gcount();
-    m_logger.debug("Read %d bytes from file", bytes_read);
-    if ((bytes_read != bytes_to_read) && !m_stream.eof())
-      BOOST_THROW_EXCEPTION(std::runtime_error("Some error while reading data from temporary file"));
+    size_t bytes_read = 0;
+    while (bytes_to_read > 0) {
+      std::streamsize btr = std::numeric_limits<std::streamsize>::max() < bytes_to_read ?
+        std::numeric_limits<std::streamsize>::max() : bytes_to_read;
+      m_stream.read(m_data.get() + left, btr);
+      std::streamsize br = m_stream.gcount();
+      m_logger.debug("Read %d bytes from file (tried to read %u)", br, btr);
+      if ((br != btr) && !m_stream.eof())
+        BOOST_THROW_EXCEPTION(std::runtime_error("Some error while reading data from temporary file"));
+      bytes_to_read = m_stream.eof() ? 0 : bytes_to_read - br;
+      bytes_read += br;
+    }
     m_idx = 0;
     m_data_available = left + bytes_read;
     m_has_cached_data = check_memory(m_idx);
@@ -73,14 +91,19 @@ public:
       return;
     size_t idx = m_idx;
     record_t* ptr = reinterpret_cast<record_t*>(m_data.get() + idx);
-    ptrs->push_back(ptr);
-    idx += ptr->size + sizeof(record_t);
 
-    while (check_memory(idx)) {
-      ptr = reinterpret_cast<record_t*>(m_data.get() + idx);
+    while (idx + ptr->size + sizeof(record_t) <= m_data_available) {
       ptrs->push_back(ptr);
       idx += ptr->size + sizeof(record_t);
+      ptr = reinterpret_cast<record_t*>(m_data.get() + idx);
     }
+
+    if ((idx + sizeof(record_t) <= m_data_available) && (ptr->size + sizeof(record_t) > m_ram_size)) {
+      m_logger.error("Record size (%u) is greater than available memory (%u), unable to continue", ptr->size, m_ram_size);
+      BOOST_THROW_EXCEPTION(std::runtime_error("Record size is greater than available memory"));
+    }
+
+    m_idx = idx;
   }
 
 private:
@@ -93,7 +116,7 @@ private:
       return false;
     }
     const record_t* rec = reinterpret_cast<const record_t*>(m_data.get() + idx);
-    if (rec->size > m_ram_size) {
+    if (rec->size + sizeof(record_t) > m_ram_size) {
       m_logger.error("Record size (%u) is greater than available memory (%u), unable to continue", rec->size, m_ram_size);
       BOOST_THROW_EXCEPTION(std::runtime_error("Record size is greater than available memory"));
     }
@@ -122,12 +145,12 @@ public:
     : m_logger(log4cpp::Category::getRoot())
     , m_delete_file(rm_file)
     , m_file_name(fname)
-    , m_stream(m_file_name.c_str(), std::ifstream::binary)
-    , m_buffer(m_stream, ram_size) {}
+    , m_sbuf(m_file_name)
+    , m_buffer(m_sbuf, ram_size) {}
 
   ~input_file_t()
   {
-    m_stream.close();
+    m_sbuf.close();
     if (m_delete_file) {
       m_logger.debugStream() << "Removing file " << m_file_name;
       if (remove(m_file_name.c_str()) != 0)
@@ -141,6 +164,6 @@ private:
   log4cpp::Category& m_logger;
   bool m_delete_file;
   std::string m_file_name;
-  std::ifstream m_stream;
+  io::stream<io::file_source> m_sbuf;
   input_buffer_t m_buffer;
 };
