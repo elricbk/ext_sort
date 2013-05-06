@@ -9,7 +9,7 @@
 #include "log4cpp/Category.hh"
 
 #include "common/record_info.h"
-#include "input_buffer.h"
+#include "input_file.hpp"
 #include "output_buffer.h"
 
 // FIXME: может не работать в кросс-платформенном варианте, но boost::filesystem ради этого дёргать пока не будем
