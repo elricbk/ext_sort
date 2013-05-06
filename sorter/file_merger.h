@@ -30,7 +30,7 @@ public:
 
   void merge_files(const std::string& out_fname, size_t ram_size)
   {
-    BOOST_ASSERT(ram_size > 0); // FIXME: какое-то более сильное условие должно быть
+    BOOST_ASSERT(ram_size >= sizeof(record_t)*(m_files.size() + 1));
     BOOST_ASSERT(!m_files.empty());
 
     size_t partial_ram = ram_size/(m_files.size() + 1);
