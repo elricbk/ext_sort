@@ -40,7 +40,8 @@ int main(int ac, const char *av[])
   size_t data_size;
   std::string file_name;
   bool verbose;
-  bool randomize;
+  bool random_seed;
+  bool random_data;
 
   po::options_description desc("Options for test data generator");
   desc.add_options()
@@ -49,12 +50,19 @@ int main(int ac, const char *av[])
     ("datasize,d", po::value<size_t>(&data_size)->default_value(1), "set maximum size of data for each record in Kb")
     ("output,o", po::value<std::string>(&file_name)->default_value("test.dat"), "set output file name")
     ("verbose,v", po::value<bool>(&verbose)->zero_tokens()->default_value(false), "verbose logging")
-    ("randomize-data", po::value<bool>(&randomize)->default_value(false), "set random seed for data generator")
+    ("randomize-seed", po::value<bool>(&random_seed)->zero_tokens()->default_value(false), "set random seed for data generator")
+    ("randomize-data", po::value<bool>(&random_data)->zero_tokens()->default_value(false), "set random data for each entry")
     ;
 
   po::variables_map vm;
-  po::store(po::parse_command_line(ac, av, desc), vm);
-  po::notify(vm);    
+  try {
+    po::store(po::parse_command_line(ac, av, desc), vm);
+    po::notify(vm);
+  } catch (const std::exception& e) {
+    std::cout << e.what() << std::endl;
+    std::cout << desc << "\n";
+    return 1;
+  }
 
   init_logging(verbose);
   log4cpp::Category& logger = log4cpp::Category::getRoot();
@@ -65,7 +73,7 @@ int main(int ac, const char *av[])
   }
 
   try {
-    generator_t generator(file_name, file_size*1024*1024, data_size*1024);
+    generator_t generator(file_name, file_size*1024*1024, data_size*1024, random_seed, random_data);
     generator.generate_data();
   } catch (const boost::exception& e) {
     logger.critStream() << "Error while reading data: " << boost::diagnostic_information(e);

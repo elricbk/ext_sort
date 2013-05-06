@@ -89,4 +89,19 @@ BOOST_AUTO_TEST_SUITE(SimpleScnearios)
     BOOST_CHECK(comparer.file_is_sorted());
     BOOST_CHECK(comparer.records_are_equal());
   }
+
+  BOOST_AUTO_TEST_CASE(data_is_correct) {
+    log4cpp::Category::getRoot().notice("=== data_is_correct ===");
+    file_comparer_t comparer;
+
+    generator_t generator(comparer.fname_orig(), 20480, 50, false, true);
+    generator.generate_data();
+
+    sorter_t sorter(comparer.fname_orig(), comparer.fname_sort(), 10240);
+    sorter.sort_data();
+
+    BOOST_CHECK(comparer.file_is_sorted());
+    BOOST_CHECK(comparer.records_are_equal());
+    BOOST_CHECK(comparer.random_entries_are_equal());
+  }
 BOOST_AUTO_TEST_SUITE_END()

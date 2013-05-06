@@ -1,7 +1,10 @@
+#pragma once
+
 #include <cstdio>
 
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/shared_array.hpp>
 #include <boost/foreach.hpp>
 #include <boost/throw_exception.hpp>
 
@@ -101,9 +104,20 @@ public:
     return true;
   }
 
+  bool random_entries_are_equal()
+  {
+    if (!m_rec_orig) {
+      m_rec_orig = records_from_file(m_fname_orig);
+      std::sort(m_rec_orig->begin(), m_rec_orig->end());
+    }
+    if (!m_rec_sort)
+      m_rec_sort = records_from_file(m_fname_sort);
+    return (find_original_record(m_rec_sort->front()) && find_original_record(m_rec_sort->back()));
+  }
 
 private:
   typedef boost::shared_ptr<std::vector<record_info_t> > record_list_t;
+  typedef std::vector<record_info_t>::iterator record_iterator_t;
 
   record_list_t records_from_file(const std::string& fname)
   {
@@ -127,6 +141,43 @@ private:
   static bool keys_are_equal(const record_info_t& first, const record_info_t& second)
   {
     return std::memcmp(first.key, second.key, 64) == 0;
+  }
+
+  boost::shared_array<char> get_data(const std::string& fname, const record_info_t& ri, size_t& data_size)
+  {
+    m_logger.debug("Getting data from file %s for key %02x %02x %02x %02x",
+      fname.c_str(), ri.key[0], ri.key[1], ri.key[2], ri.key[3]);
+    io::stream<io::file_source> fin(fname);
+    fin.seekg(ri.offset);
+    record_t rec;
+    fin.read(reinterpret_cast<char*>(&rec), sizeof(record_t));
+    if (fin.gcount() != sizeof(record_t))
+      BOOST_THROW_EXCEPTION(std::runtime_error("Unable to read record from file"));
+    data_size = rec.size;
+    boost::shared_array<char> res(new char[data_size]);
+    fin.read(res.get(), data_size);
+    if (fin.gcount() != data_size)
+      BOOST_THROW_EXCEPTION(std::runtime_error("Unable to read data from file"));
+    m_logger.debug("Data found (%u bytes), first bytes as uint32_t: %08x", data_size, *reinterpret_cast<uint32_t*>(res.get()));
+    return res;
+  }
+
+  bool find_original_record(const record_info_t& ri)
+  {
+    BOOST_ASSERT(m_rec_orig);
+    BOOST_ASSERT(m_rec_sort);
+    size_t length_sort;
+    boost::shared_array<char> ri_data = get_data(m_fname_sort, ri, length_sort);
+    record_iterator_t it = std::find_if(m_rec_orig->begin(), m_rec_orig->end(), boost::bind(keys_are_equal, _1, ri));
+    while (it != m_rec_orig->end()) {
+      size_t length_orig;
+      boost::shared_array<char> data = get_data(m_fname_orig, *it, length_orig);
+      if ((length_orig == length_sort) && (std::memcmp(data.get(), ri_data.get(), length_orig) == 0))
+          return true;
+      ++it;
+      it = std::find_if(it, m_rec_orig->end(), boost::bind(&file_comparer_t::keys_are_equal, _1, ri));
+    }
+    return false;
   }
 
 private:
