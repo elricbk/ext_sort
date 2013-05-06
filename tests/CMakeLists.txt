@@ -26,10 +26,12 @@ endif()
 
 add_executable(test_auto 
   test_auto.cpp
-  ../sorter/info_container.cpp)
+  ../sorter/info_container.cpp
+  ../sorter/input_buffer.cpp)
 
 add_executable(test_input_buffer 
-  test_input_buffer.cpp)
+  test_input_buffer.cpp
+  ../sorter/input_buffer.cpp)
 
 target_link_libraries(test_auto ${Boost_LIBRARIES} ${LOG4CPP_LIBRARIES})
 target_link_libraries(test_input_buffer ${Boost_LIBRARIES} ${LOG4CPP_LIBRARIES})
