@@ -53,18 +53,13 @@ public:
           auto_timer_t t(m_logger, "Loading data");
           fi.buffer().load_data();
         }
-        fi.buffer().get_pointers(infos.pointers());
         {
-          auto_timer_t t(m_logger, "Logging records");
-          infos.log_records("Before sort");
+          auto_timer_t t(m_logger, "Building pointers for sort");
+          fi.buffer().get_pointers(infos.pointers());
         }
         {
           auto_timer_t t(m_logger, "Sorting");
           infos.sort();
-        }
-        {
-          auto_timer_t t(m_logger, "Logging records");
-          infos.log_records("After sort");
         }
         {
           auto_timer_t t(m_logger, "Dumping to tmp file");
