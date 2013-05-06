@@ -8,7 +8,6 @@
 
 #include "log4cpp/Category.hh"
 
-#include "common/record_info.h"
 #include "input_file.hpp"
 #include "output_buffer.h"
 
