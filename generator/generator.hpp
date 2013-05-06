@@ -1,6 +1,6 @@
 #include <fstream>
 
-#include <boost/shared_array.hpp>
+#include <boost/scoped_array.hpp>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
 
@@ -21,7 +21,7 @@ public:
     std::ofstream os(m_fname.c_str(), std::ios::binary);
     size_t total_size = 0;
     // FIXME: опасно такое оставлять для больших размеров данных
-    boost::shared_array<char> sa(new char[m_data_size]);
+    boost::scoped_array<char> sa(new char[m_data_size]);
     std::memset(sa.get(), m_data_size, 0);
 
     while (total_size < m_file_size) {

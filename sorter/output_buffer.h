@@ -2,7 +2,7 @@
 
 #include <fstream>
 
-#include <boost/shared_array.hpp>
+#include <boost/scoped_array.hpp>
 #include <boost/throw_exception.hpp>
 #include <boost/iostreams/device/file.hpp>
 #include <boost/iostreams/stream.hpp>
@@ -57,6 +57,6 @@ private:
   log4cpp::Category& m_logger;
   size_t m_ram_size;
   size_t m_idx;
-  boost::shared_array<char> m_data;
+  boost::scoped_array<char> m_data;
   io::stream<io::file_sink> m_outfile;
 };

@@ -2,7 +2,7 @@
 
 #include <istream>
 
-#include <boost/shared_array.hpp>
+#include <boost/scoped_array.hpp>
 #include <boost/throw_exception.hpp>
 
 #include "log4cpp/Category.hh"
@@ -127,7 +127,7 @@ private:
   std::istream& m_stream;
   size_t m_ram_size;
   bool m_has_cached_data;
-  boost::shared_array<char> m_data;
+  boost::scoped_array<char> m_data;
   size_t m_idx;
   size_t m_data_available;
 };
