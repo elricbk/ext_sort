@@ -9,7 +9,7 @@
 
 #include "log4cpp/Category.hh"
 
-#include "common/record.h"
+#include "common/record.hpp"
 
 namespace io = boost::iostreams;
 

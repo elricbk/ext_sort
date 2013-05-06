@@ -11,8 +11,8 @@
 #include "log4cpp/PatternLayout.hh"
 #include "log4cpp/Priority.hh"
 
-#include "common/record.h"
-#include "sorter/input_buffer.h"
+#include "common/record.hpp"
+#include "sorter/input_buffer.hpp"
 
 struct LoggingSetup
 {

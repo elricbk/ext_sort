@@ -7,7 +7,7 @@
 
 #include "log4cpp/Category.hh"
 
-#include "input_buffer.h"
+#include "input_buffer.hpp"
 
 namespace io = boost::iostreams;
 

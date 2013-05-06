@@ -7,7 +7,7 @@
 
 #include <log4cpp/Category.hh>
 
-#include "common/record.h"
+#include "common/record.hpp"
 
 class record_info_t
 {

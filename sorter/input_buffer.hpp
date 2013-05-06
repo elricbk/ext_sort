@@ -7,7 +7,7 @@
 
 #include "log4cpp/Category.hh"
 
-#include "common/record.h"
+#include "common/record.hpp"
 
 // FIXME: explicit constructors where possible?
 

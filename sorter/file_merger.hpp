@@ -9,7 +9,7 @@
 #include "log4cpp/Category.hh"
 
 #include "input_file.hpp"
-#include "output_buffer.h"
+#include "output_buffer.hpp"
 
 // FIXME: может не работать в кросс-платформенном варианте, но boost::filesystem ради этого дёргать пока не будем
 static const std::string s_fname_template = "%s/tmp_%04d.dat";

@@ -4,7 +4,7 @@
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
 
-#include "common/test.h"
+#include "common/test.hpp"
 
 class generator_t {
 public:
