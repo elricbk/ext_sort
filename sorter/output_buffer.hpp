@@ -13,6 +13,7 @@
 
 namespace io = boost::iostreams;
 
+//! Буфер для выходного файла с данными с заголовками формата record_t
 class output_buffer_t {
 public:
   output_buffer_t(const std::string& outfile, size_t ram_size)
@@ -26,6 +27,10 @@ public:
       BOOST_THROW_EXCEPTION(std::runtime_error("Unable to open output file"));
   }
 
+  ~output_buffer_t() { dump(); }
+
+  //! Копирует запись вместе с данными во внутренний буфер
+  /** При заполнении буфера автоматически сбрасывает его на диск  */
   void add(const record_t* rec)
   {
     BOOST_ASSERT(rec);
@@ -41,6 +46,7 @@ public:
     m_idx += total_size;
   }
 
+  //! Принудительное сбрасывание на диск накопленных данных
   void dump()
   {
     if (m_idx != 0)

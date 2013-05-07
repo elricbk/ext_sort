@@ -33,34 +33,35 @@ public:
     BOOST_ASSERT(!m_files.empty());
 
     size_t partial_ram = ram_size/(m_files.size() + 1);
-    boost::ptr_vector<input_file_t> ibs; 
+    boost::ptr_vector<input_file_t> infiles; 
     BOOST_FOREACH(const std::string& fname, m_files) {
-      ibs.push_back(new input_file_t(fname, partial_ram, true));
-      ibs.back().buffer().load_data();
+      infiles.push_back(new input_file_t(fname, partial_ram, true));
+      infiles.back().buffer().load_data();
     }
 
     output_buffer_t ob(out_fname, ram_size - m_files.size()*partial_ram);
 
-    while (!ibs.empty()) {
+    while (!infiles.empty()) {
       size_t min_idx = 0;
-      const record_t* min_rec = ibs[0].buffer().peek();
-      for (size_t i = 1; i < ibs.size(); ++i) {
-        if (*ibs[i].buffer().peek() < *min_rec) {
-          min_rec = ibs[i].buffer().peek();
+      const record_t* min_rec = infiles[0].buffer().peek();
+      for (size_t i = 1; i < infiles.size(); ++i) {
+        if (*infiles[i].buffer().peek() < *min_rec) {
+          min_rec = infiles[i].buffer().peek();
           min_idx = i;
         }
       }
 
       ob.add(min_rec);
-      ibs[min_idx].buffer().pop();
+      input_buffer_t& inbuf = infiles[min_idx].buffer();
+      inbuf.pop();
 
-      if (!ibs[min_idx].buffer().has_cached_data()) {
+      if (!inbuf.has_cached_data()) {
         m_logger.debug("No cached data in file with idx %d", min_idx);
-        ibs[min_idx].buffer().load_data();
+        inbuf.load_data();
 
-        if (!ibs[min_idx].buffer().has_cached_data()) {
+        if (!inbuf.has_cached_data()) {
           m_logger.debug("Still no cached data, means file is exhausted, removing");
-          ibs.erase(ibs.begin() + min_idx);
+          infiles.erase(infiles.begin() + min_idx);
         }
       }
     }

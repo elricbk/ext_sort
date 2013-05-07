@@ -1,9 +1,11 @@
 #include <fstream>
 
+#include <boost/assert.hpp>
 #include <boost/scoped_array.hpp>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
 #include <boost/noncopyable.hpp>
+#include <boost/throw_exception.hpp>
 
 #include "common/record.hpp"
 
@@ -33,11 +35,14 @@ public:
 
     while (total_size < m_file_size) {
       record_t res = generate_test(); 
+      BOOST_ASSERT(res.size <= m_data_size);
       m_logger.debugStream() << "Generated record: " << res;
       os.write(reinterpret_cast<char*>(&res), sizeof(res));
       if (m_random_data)
         generate_data(sa.get(), res.size);
       os.write(sa.get(), res.size);
+      if (!os.good())
+        BOOST_THROW_EXCEPTION(std::runtime_error("Unable to write to output file"));
       total_size += sizeof(res) + res.size;
     }
   }

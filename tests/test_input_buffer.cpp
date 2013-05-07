@@ -125,6 +125,7 @@ BOOST_AUTO_TEST_SUITE(InputBuffer)
     BOOST_CHECK_EQUAL(ptrs.size(), 2);
     BOOST_CHECK_EQUAL(*ptrs[0], rec);
     BOOST_CHECK_EQUAL(*ptrs[1], rec2);
+    BOOST_CHECK(!ib.has_cached_data());
   }
 
 BOOST_AUTO_TEST_SUITE_END()

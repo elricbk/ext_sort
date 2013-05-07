@@ -9,7 +9,7 @@ input_buffer_t::input_buffer_t (std::istream& stream, size_t ram_size)
   , m_has_cached_data(false)
   , m_data(new char[m_ram_size])
   , m_idx(0)
-    , m_data_available(0)
+  , m_data_available(0)
 {
   m_logger.debug("input_buffer_t: m_ram_size=%u", m_ram_size);
   if (m_ram_size < sizeof(record_t)) {
@@ -74,6 +74,7 @@ void input_buffer_t::get_pointers(std::vector<record_t*> * ptrs)
   }
 
   m_idx = idx;
+  m_has_cached_data = false;
 }
 
 bool input_buffer_t::check_memory(size_t idx)

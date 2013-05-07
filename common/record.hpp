@@ -35,8 +35,8 @@ log4cpp::CategoryStream& operator<< (log4cpp::CategoryStream& os, const record_t
   std::ostringstream ss;
   ss << "record<key=\"" << std::hex;
   for (int i = 0; i < 3; ++i)
-    ss << static_cast<uint16_t>(rec.key[i]) << " ";
-  ss << static_cast<uint16_t>(rec.key[3]) << "...\",";
+    ss << std::setw(2) << std::setfill('0') << static_cast<uint16_t>(rec.key[i]) << " ";
+  ss << std::setw(2) << std::setfill('0') << static_cast<uint16_t>(rec.key[3]) << "...\",";
   ss << " size=" << std::dec << rec.size << ">";
   os << ss.str();
   return os;

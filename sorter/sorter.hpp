@@ -5,6 +5,7 @@
 #include "input_buffer.hpp"
 #include "file_merger.hpp"
 
+//! Основной класс для внешней сортировки
 class sorter_t {
 public:
   sorter_t(const std::string& infile, const std::string& outfile, size_t ram_size)
@@ -13,6 +14,8 @@ public:
     , m_outfile(outfile)
     , m_ram_size(ram_size) {}
 
+  //! Сортировка данных
+  /** Журналирует время выполнения различных шагов сортировки */
   void sort_data()
   {
     m_logger.debug("Starting reading of data");
