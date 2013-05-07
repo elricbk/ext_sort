@@ -22,7 +22,7 @@ void input_buffer_t::pop()
 {
   BOOST_ASSERT(m_has_cached_data);
   const record_t* rec = peek();
-  m_logger.debug("Popping record key=%02x %02x %02x %02x, size=%u", rec->key[0], rec->key[1], rec->key[2], rec->key[3], rec->size);
+  m_logger.debugStream() << "Popping: " << *rec;
   m_idx += rec->size + sizeof(record_t);
   m_has_cached_data = check_memory(m_idx);
 }

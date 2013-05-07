@@ -13,8 +13,7 @@
 #include "generator/generator.hpp"
 #include "file_comparer.hpp"
 
-struct LoggingSetup
-{
+struct LoggingSetup {
   LoggingSetup()
   {
     log4cpp::PatternLayout* layout = new log4cpp::PatternLayout();

@@ -1,12 +1,12 @@
 #pragma once
 
 #include <boost/timer/timer.hpp>
+#include <boost/noncopyable.hpp>
 
 #include "log4cpp/Category.hh"
 
 // Вспомогательный класс для логирования времени выполнения в log4cpp::Category
-class auto_timer_t
-{
+class auto_timer_t: boost::noncopyable {
 public:
   auto_timer_t(log4cpp::Category& logger, const std::string& caption)
     : m_logger(logger)

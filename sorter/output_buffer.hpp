@@ -22,13 +22,15 @@ public:
     , m_data(new char[m_ram_size])
     , m_outfile(outfile.c_str(), std::ofstream::binary)
   {
+    if (!m_outfile.is_open())
+      BOOST_THROW_EXCEPTION(std::runtime_error("Unable to open output file"));
   }
 
   void add(const record_t* rec)
   {
     BOOST_ASSERT(rec);
-    m_logger.debug("Adding record key=%02x %02x %02x %02x, size=%u", rec->key[0], rec->key[1], rec->key[2], rec->key[3], rec->size);
-    m_logger.debug("Space available: m_ram_size=%u m_idx=%u", m_ram_size, m_idx);
+    m_logger.debugStream() << "Adding: " <<  *rec <<
+      ", space available: m_ram_size=" << m_ram_size << " m_idx=" << m_idx;
     size_t total_size = rec->size + sizeof(record_t);
     // FIXME: это вообще-то можно обойти поблочным копированием
     if (total_size > m_ram_size)
@@ -49,7 +51,9 @@ private:
   void save()
   {
     m_logger.debug("Saving %u bytes", m_idx);
-    m_outfile.write(m_data.get(), m_idx); // FIXME: проверка ошибок?
+    m_outfile.write(m_data.get(), m_idx);
+    if (!m_outfile.good())
+      BOOST_THROW_EXCEPTION(std::runtime_error("Error writing data to output file"));
     m_idx = 0;
   }
 

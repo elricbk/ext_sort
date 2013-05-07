@@ -5,8 +5,7 @@
 #include "input_buffer.hpp"
 #include "file_merger.hpp"
 
-class sorter_t
-{
+class sorter_t {
 public:
   sorter_t(const std::string& infile, const std::string& outfile, size_t ram_size)
     : m_logger(log4cpp::Category::getRoot())

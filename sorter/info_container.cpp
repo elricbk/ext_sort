@@ -8,23 +8,12 @@
 info_container_t::info_container_t(size_t ptr_count)
   : m_logger(log4cpp::Category::getRoot())
 {
-  // FIXME: для поддержки многопоточности нужно резервировать
-  // thread_count/(thread_count + 1) от этого количества
   m_records.reserve(ptr_count);
 }
 
 
 namespace {
   typedef record_t* item_type;
-
-  //bool cmp_char_64_r(const record_info_t& first, const record_info_t& second)
-  //{
-    //for (size_t i = 0; i < 64; ++i) {
-      //if (first.key[i] == second.key[i]) continue;
-      //return first.key[i] < second.key[i];
-    //}
-    //return false;
-  //}
 
   void insertion_sort(item_type *array, size_t offset, size_t end) {
       item_type temp;
@@ -97,7 +86,7 @@ void info_container_t::log_records(const std::string& header) const
 {
   m_logger.debugStream() << header;
   BOOST_FOREACH(const record_t* cur, m_records) {
-    m_logger.debug("Key: %02x %02x %02x %02x, size: %u", cur->key[0], cur->key[1], cur->key[2], cur->key[3], cur->size);
+    m_logger.debugStream() << "Record: " << *cur;
   }
 }
 

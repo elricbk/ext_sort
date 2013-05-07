@@ -7,15 +7,15 @@
 #include <boost/shared_array.hpp>
 #include <boost/foreach.hpp>
 #include <boost/throw_exception.hpp>
+#include <boost/noncopyable.hpp>
 
 #include <log4cpp/Category.hh>
 
 #include "common/record.hpp"
 
-class record_info_t
-{
+class record_info_t {
 public:
-  record_info_t() {}
+  explicit record_info_t() {}
 
   record_info_t(const record_t& record, uint64_t offset)
   {
@@ -36,8 +36,7 @@ public:
   uint64_t offset;
 };
 
-class file_comparer_t
-{
+class file_comparer_t: boost::noncopyable {
 public:
   file_comparer_t(const std::string& fname_orig = "original.test.dat", const std::string& fname_sort = "sorted.test.dat")
     : m_logger(log4cpp::Category::getRoot())
@@ -132,7 +131,7 @@ private:
       if (bytes_read != sizeof(cur_test))
         BOOST_THROW_EXCEPTION(std::runtime_error("Unable to read test struct from input file"));
       is.ignore(cur_test.size);
-      m_logger.debug("%s: record key=%02x %02x %02x %02x, size=%u", fname.c_str(), cur_test.key[0], cur_test.key[1], cur_test.key[2], cur_test.key[3], cur_test.size);
+      m_logger.debugStream() << fname << ": " << cur_test;
       result->push_back(record_info_t(cur_test, offset));
     }
     return result;

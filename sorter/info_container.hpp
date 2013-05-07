@@ -7,11 +7,10 @@
 
 #include "common/record.hpp"
 
-class info_container_t
-{
+class info_container_t {
 public:
-  info_container_t(size_t ptr_count);
-  std::vector<record_t*>* pointers() { return &m_records; } // FIXME: здесь был const, но его пришлось убрать
+  explicit info_container_t(size_t ptr_count);
+  std::vector<record_t*>* pointers() { return &m_records; }
   void sort();
   void dump_to_file(const std::string& fname);
   void log_records(const std::string& header) const;

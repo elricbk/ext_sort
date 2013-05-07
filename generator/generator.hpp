@@ -3,10 +3,11 @@
 #include <boost/scoped_array.hpp>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
+#include <boost/noncopyable.hpp>
 
-#include "common/test.hpp"
+#include "common/record.hpp"
 
-class generator_t {
+class generator_t: boost::noncopyable {
 public:
   generator_t (const std::string& fname, size_t file_size, size_t data_size, bool random_seed = false, bool random_data = false)
     : m_logger(log4cpp::Category::getRoot())
@@ -31,8 +32,8 @@ public:
       std::memset(sa.get(), m_data_size, 0);
 
     while (total_size < m_file_size) {
-      test res = generate_test(); 
-      m_logger.debug("Key: %02x %02x %02x %02x, Size: %u", res.key[0], res.key[1], res.key[2], res.key[3], res.size);
+      record_t res = generate_test(); 
+      m_logger.debugStream() << "Generated record: " << res;
       os.write(reinterpret_cast<char*>(&res), sizeof(res));
       if (m_random_data)
         generate_data(sa.get(), res.size);
@@ -42,7 +43,7 @@ public:
   }
 
 private:
-  test generate_test()
+  record_t generate_test()
   {
     test res;
     for (size_t i = 0; i < 64; ++i)

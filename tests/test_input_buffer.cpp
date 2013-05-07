@@ -14,8 +14,7 @@
 #include "common/record.hpp"
 #include "sorter/input_buffer.hpp"
 
-struct LoggingSetup
-{
+struct LoggingSetup {
   LoggingSetup()
   {
     log4cpp::PatternLayout* layout = new log4cpp::PatternLayout();

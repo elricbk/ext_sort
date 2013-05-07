@@ -1,5 +1,10 @@
 #pragma once
 
+#include <sstream>
+#include <iomanip>
+
+#include "log4cpp/Category.hh"
+
 #include "test.hpp"
 
 typedef test record_t;
@@ -22,4 +27,17 @@ bool operator<(const record_t& lhs, const record_t& rhs)
     return lhs.key[i] < rhs.key[i];
   }
   return false;
+}
+
+inline
+log4cpp::CategoryStream& operator<< (log4cpp::CategoryStream& os, const record_t& rec)
+{
+  std::ostringstream ss;
+  ss << "record<key=\"" << std::hex;
+  for (int i = 0; i < 3; ++i)
+    ss << static_cast<uint16_t>(rec.key[i]) << " ";
+  ss << static_cast<uint16_t>(rec.key[3]) << "...\",";
+  ss << " size=" << std::dec << rec.size << ">";
+  os << ss.str();
+  return os;
 }

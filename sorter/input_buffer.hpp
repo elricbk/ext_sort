@@ -3,14 +3,13 @@
 #include <istream>
 
 #include <boost/scoped_array.hpp>
+#include <boost/noncopyable.hpp>
 
 #include "log4cpp/Category.hh"
 
 #include "common/record.hpp"
 
-// FIXME: explicit constructors where possible?
-
-class input_buffer_t {
+class input_buffer_t: boost::noncopyable {
 public:
   input_buffer_t (std::istream& stream, size_t ram_size);
 
