@@ -32,6 +32,15 @@ public:
     BOOST_ASSERT(ram_size >= sizeof(record_t)*(m_files.size() + 1));
     BOOST_ASSERT(!m_files.empty());
 
+    if (m_files.size() == 1) {
+      m_logger.debug("Only one file to merge (%s), just renaming it", m_files.front().c_str());
+      if (std::rename(m_files.front().c_str(), out_fname.c_str()) != 0) {
+          m_logger.errorStream() << "Unable to rename " << m_files.front() <<
+            " to " << out_fname << ". Sorted file is available as " << m_files.front();
+      }
+      return;
+    }
+
     size_t partial_ram = ram_size/(m_files.size() + 1);
     boost::ptr_vector<input_file_t> infiles; 
     BOOST_FOREACH(const std::string& fname, m_files) {
